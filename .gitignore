@@ -1,0 +1,19 @@
+# Miljøvariabler og hemmeligheter
+.env
+.env.*
+!.env.example
+
+# Kalendercache (inneholder hendelsestitler)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Diverse
+.DS_Store
+*.log
+node_modules/

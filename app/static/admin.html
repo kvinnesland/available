@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Besøkskalender – admin</title>
+<style>
+:root{--bg:#f6f4ef;--surface:#fff;--text:#1c1f22;--muted:#5b6166;--border:#e1ddd4;--ok:#1b5a2c;--no:#a32d2d;--accent:#1e5a84}
+@media (prefers-color-scheme: dark){:root{--bg:#121518;--surface:#1b1f23;--text:#e9e7e2;--muted:#a4a9ae;--border:#2f353b;--ok:#b3e0bf;--no:#f09595;--accent:#86b8dd}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:960px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}
+.muted{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:16px 0}
+button{font:inherit;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:8px 12px;min-height:40px;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:16px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:13px}
+.y{color:var(--ok)}.n{color:var(--no);font-weight:600}
+.err{color:var(--no)}
+h2{font-size:16px;margin:0 0 8px;text-transform:capitalize}
+</style>
+</head>
+<body>
+<main>
+  <h1>Besøkskalender – admin</h1>
+  <p class="muted" id="updated">Laster …</p>
+
+  <section class="card">
+    <h2 style="text-transform:none">Kilder</h2>
+    <table><thead><tr><th>Kilde</th><th>Sist hentet</th><th>Hendelser</th><th>Feil</th></tr></thead><tbody id="sources"></tbody></table>
+    <div class="bar"><button type="button" id="refresh">Hent på nytt</button><span class="muted" id="refreshMsg" aria-live="polite"></span></div>
+  </section>
+
+  <div class="bar">
+    <button type="button" id="prev" aria-label="Forrige måned">‹ Forrige</button>
+    <h2 id="month" style="margin:0 8px" aria-live="polite"></h2>
+    <button type="button" id="next" aria-label="Neste måned">Neste ›</button>
+  </div>
+
+  <section class="card">
+    <table>
+      <thead><tr><th>Natt fra</th><th>Håvard hjemme</th><th>Marianne hjemme</th><th>Gjesterom ledig</th><th>Årsaker</th></tr></thead>
+      <tbody id="nights"></tbody>
+    </table>
+  </section>
+</main>
+<script>
+(function(){
+  "use strict";
+  var view = new Date(); view = new Date(Date.UTC(view.getFullYear(), view.getMonth(), 1));
+  var fmtMonth = new Intl.DateTimeFormat("nb-NO", {month:"long", year:"numeric", timeZone:"UTC"});
+  var fmtDay = new Intl.DateTimeFormat("nb-NO", {weekday:"short", day:"numeric", month:"short", timeZone:"UTC"});
+  function iso(dt){ return dt.toISOString().slice(0,10); }
+  function addMonth(dt, n){ return new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + n, 1)); }
+  function yn(v){ var s = document.createElement("span"); s.className = v ? "y" : "n"; s.textContent = v ? "Ja" : "Nei"; return s; }
+  function td(child){ var c = document.createElement("td"); if (typeof child === "string") c.textContent = child; else if (child) c.appendChild(child); return c; }
+  function stamp(ts){ return ts ? new Date(ts).toLocaleString("nb-NO") : "Aldri"; }
+
+  function renderSources(list){
+    var tb = document.getElementById("sources"); tb.innerHTML = "";
+    if (!list.length) { var r = document.createElement("tr"); r.appendChild(td("Ingen kilder konfigurert. Sett ICS_HAVARD, ICS_MARIANNE og evt. ICS_SHARED.")); tb.appendChild(r); return; }
+    list.forEach(function(s){
+      var r = document.createElement("tr");
+      r.appendChild(td(s.label)); r.appendChild(td(stamp(s.last_success))); r.appendChild(td(String(s.events)));
+      var e = td(s.last_error || "–"); if (s.last_error) e.className = "err"; r.appendChild(e);
+      tb.appendChild(r);
+    });
+  }
+
+  function load(){
+    document.getElementById("month").textContent = fmtMonth.format(view);
+    var from = iso(view), to = iso(addMonth(view, 1));
+    fetch("/api/admin/nights?from=" + from + "&to=" + to, {credentials:"same-origin", cache:"no-store"})
+      .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(data){
+        document.getElementById("updated").textContent = "Sist oppdatert: " + stamp(data.updated_at);
+        renderSources(data.sources);
+        var tb = document.getElementById("nights"); tb.innerHTML = "";
+        data.nights.forEach(function(n){
+          var r = document.createElement("tr");
+          r.appendChild(td(fmtDay.format(new Date(n.date + "T12:00:00Z"))));
+          r.appendChild(td(yn(n.h))); r.appendChild(td(yn(n.m))); r.appendChild(td(yn(n.room)));
+          var reasons = n.reasons.map(function(x){ return x.person + " – " + x.title + " (" + x.source + ", " + x.rule + ")"; }).join("\n");
+          var c = td(reasons || "–"); c.style.whiteSpace = "pre-line"; r.appendChild(c);
+          tb.appendChild(r);
+        });
+      })
+      .catch(function(e){ document.getElementById("updated").textContent = "Kunne ikke laste data (" + e.message + ")."; });
+  }
+
+  document.getElementById("prev").addEventListener("click", function(){ view = addMonth(view, -1); load(); });
+  document.getElementById("next").addEventListener("click", function(){ view = addMonth(view, 1); load(); });
+  document.getElementById("refresh").addEventListener("click", function(){
+    var msg = document.getElementById("refreshMsg"); msg.textContent = "Henter …";
+    fetch("/api/admin/refresh", {method:"POST", credentials:"same-origin"})
+      .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); msg.textContent = "Ferdig."; load(); })
+      .catch(function(e){ msg.textContent = "Feilet (" + e.message + ")."; });
+  });
+  load();
+})();
+</script>
+</body>
+</html>

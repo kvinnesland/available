@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Kom på besøk i Tromsø</title>
+<style>
+:root{
+  --bg:#f6f4ef;--surface:#ffffff;--text:#1c1f22;--muted:#5b6166;--border:#e1ddd4;
+  --accent:#1e5a84;--accent-bg:#dce9f3;--accent-text:#163f5c;
+  --free-bg:#e2f0e4;--free-text:#1b5a2c;--busy-text:#6a6a6a;--busy-bg:transparent;
+  --danger:#a32d2d;--focus:#1e5a84;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121518;--surface:#1b1f23;--text:#e9e7e2;--muted:#a4a9ae;--border:#2f353b;
+    --accent:#86b8dd;--accent-bg:#1c3448;--accent-text:#cfe3f2;
+    --free-bg:#1d3a26;--free-text:#b3e0bf;--busy-text:#8f959b;
+    --danger:#f09595;--focus:#86b8dd;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+main{max-width:560px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
+.updated{font-size:13px;color:var(--muted);margin:0 0 24px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+.label{font-size:14px;color:var(--muted);margin:0 0 8px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.seg button{appearance:none;border:0;background:transparent;color:var(--text);font:inherit;font-size:15px;padding:10px 4px;min-height:44px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--accent-bg);color:var(--accent-text);font-weight:600}
+.monthbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.monthbar h2{font-size:17px;font-weight:600;margin:0;text-transform:capitalize}
+.nav{appearance:none;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer}
+.nav:disabled{opacity:.35;cursor:default}
+.grid{display:grid;grid-template-columns:28px repeat(7,minmax(0,1fr));gap:4px}
+.dow{font-size:12px;color:var(--muted);text-align:center;padding-bottom:2px}
+.wk{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.day{appearance:none;display:block;width:100%;font:inherit;font-size:15px;min-height:44px;border-radius:9px;border:1px solid transparent;cursor:pointer;padding:0;color:var(--text);background:transparent;position:relative}
+.day.free{background:var(--free-bg);color:var(--free-text);font-weight:500}
+.day.busy{color:var(--busy-text);text-decoration:line-through;background:var(--busy-bg)}
+.day.past,.day.nodata{color:var(--busy-text);opacity:.5;cursor:default}
+.day.today{border-color:var(--border)}
+.day.inrange{box-shadow:inset 0 0 0 2px var(--accent)}
+.day.inrange.busy{box-shadow:inset 0 0 0 2px var(--danger)}
+.day.dep{border:2px dashed var(--accent)}
+.day:focus-visible,.seg button:focus-visible,.nav:focus-visible,.cta:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin:14px 0 0}
+.sw{display:inline-block;width:18px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+.sw.free{background:var(--free-bg);border:1px solid var(--free-text)}
+.sw.busy{border:1px solid var(--border);background:linear-gradient(to top right,transparent 46%,var(--busy-text) 48%,var(--busy-text) 52%,transparent 54%)}
+.summary{border-top:1px solid var(--border);margin-top:16px;padding-top:14px;font-size:15px;color:var(--muted);min-height:28px}
+.summary .ok{color:var(--free-text);font-weight:600}
+.summary .bad{color:var(--danger)}
+.cta{display:inline-block;margin-top:12px;background:var(--accent);color:#fff;text-decoration:none;border-radius:10px;padding:11px 16px;font-weight:600;min-height:44px}
+@media (prefers-color-scheme: dark){.cta{color:#10202c}}
+.foot{font-size:13px;color:var(--muted);margin-top:20px}
+.error{color:var(--danger)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<main>
+  <h1>Kom på besøk i Tromsø</h1>
+  <p class="updated" id="updated">Henter kalenderen …</p>
+
+  <section class="card" aria-labelledby="whoLabel">
+    <p class="label" id="whoLabel">Hvem må være hjemme?</p>
+    <div class="seg" role="group" aria-labelledby="whoLabel" id="seg">
+      <button type="button" data-mode="h" aria-pressed="false">Håvard</button>
+      <button type="button" data-mode="m" aria-pressed="false">Marianne</button>
+      <button type="button" data-mode="b" aria-pressed="true">Begge</button>
+    </div>
+
+    <div class="monthbar">
+      <button type="button" class="nav" id="prev" aria-label="Forrige måned">‹</button>
+      <h2 id="monthTitle" aria-live="polite"></h2>
+      <button type="button" class="nav" id="next" aria-label="Neste måned">›</button>
+    </div>
+
+    <div class="grid" aria-hidden="true">
+      <span class="dow">uke</span><span class="dow">man</span><span class="dow">tir</span><span class="dow">ons</span><span class="dow">tor</span><span class="dow">fre</span><span class="dow">lør</span><span class="dow">søn</span>
+    </div>
+    <div class="grid" id="grid" role="grid" aria-labelledby="monthTitle"></div>
+
+    <div class="legend">
+      <span><span class="sw free"></span>Ledig natt</span>
+      <span><span class="sw busy"></span>Ikke ledig</span>
+      <span>Tallet = natta som starter den dagen</span>
+    </div>
+
+    <div class="summary" id="summary" aria-live="polite">Velg ankomstdag og avreisedag.</div>
+  </section>
+
+  <p class="foot">Kalenderen viser bare om det passer, ikke hva vi skal. Ta kontakt for å avtale.</p>
+</main>
+
+<script src="/static/modes.js"></script>
+<script>
+(function(){
+  "use strict";
+  var M = window.BesokModes;
+  var key = new URLSearchParams(location.search).get("k") || "";
+  var byDate = {}, firstDate = null, lastDate = null, contact = "", today = null;
+  var mode = "b", view = null, arrival = null, departure = null, focusIso = null;
+  var MODE_TEXT = {h:"Håvard må være hjemme", m:"Marianne må være hjemme", b:"Begge må være hjemme"};
+
+  try { var saved = localStorage.getItem("besok-mode"); if (saved && M.MODES[saved]) mode = saved; } catch (e) {}
+
+  var fmtWeekday = new Intl.DateTimeFormat("nb-NO", {weekday:"short", timeZone:"UTC"});
+  var fmtWeekdayLong = new Intl.DateTimeFormat("nb-NO", {weekday:"long", timeZone:"UTC"});
+  var fmtMonthShort = new Intl.DateTimeFormat("nb-NO", {month:"short", timeZone:"UTC"});
+  var fmtMonthLong = new Intl.DateTimeFormat("nb-NO", {month:"long", timeZone:"UTC"});
+  var fmtMonthYear = new Intl.DateTimeFormat("nb-NO", {month:"long", year:"numeric", timeZone:"UTC"});
+
+  function d(iso){ return new Date(iso + "T12:00:00Z"); }
+  function strip(s){ return s.replace(/\.$/, ""); }
+  function dayNum(iso){ return parseInt(iso.slice(8,10), 10); }
+  function shortDate(iso){ return strip(fmtWeekday.format(d(iso))) + " " + dayNum(iso) + ". " + strip(fmtMonthShort.format(d(iso))); }
+  function longDate(iso){ return fmtWeekdayLong.format(d(iso)) + " " + dayNum(iso) + ". " + fmtMonthLong.format(d(iso)) + " " + iso.slice(0,4); }
+  function dm(iso){ return iso.slice(8,10) + "." + iso.slice(5,7); }
+  function monthStart(iso){ return iso.slice(0,8) + "01"; }
+  function addMonths(iso, n){ var x = d(monthStart(iso)); x.setUTCMonth(x.getUTCMonth() + n); return x.toISOString().slice(0,10); }
+
+  function ago(ts){
+    if (!ts) return "Ikke hentet ennå";
+    var min = Math.round((Date.now() - Date.parse(ts)) / 60000);
+    if (min < 1) return "Oppdatert akkurat nå";
+    if (min < 60) return "Oppdatert for " + min + " min siden";
+    var h = Math.round(min / 60);
+    if (h < 48) return "Oppdatert for " + h + " t siden";
+    return "Oppdatert " + new Date(ts).toLocaleDateString("nb-NO");
+  }
+
+  function setMode(m){
+    mode = m;
+    try { localStorage.setItem("besok-mode", m); } catch (e) {}
+    document.querySelectorAll("#seg button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.mode === m)); });
+    render();
+  }
+
+  function cellState(iso){
+    if (iso < today) return "past";
+    var n = byDate[iso];
+    if (!n) return "nodata";
+    return M.isFree(n, mode) ? "free" : "busy";
+  }
+
+  function render(){
+    if (!view) return;
+    document.getElementById("monthTitle").textContent = fmtMonthYear.format(d(view));
+    document.getElementById("prev").disabled = view <= monthStart(firstDate);
+    document.getElementById("next").disabled = view >= monthStart(lastDate);
+
+    var grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    var first = d(view), dow = (first.getUTCDay() + 6) % 7; // mandag = 0
+    var start = M.addDays(view, -dow);
+    var month = view.slice(0,7);
+    for (var r = 0; r < 6; r++) {
+      var rowStart = M.addDays(start, r * 7);
+      if (r > 0 && rowStart.slice(0,7) !== month) break;
+      var row = document.createElement("div"); row.setAttribute("role", "row"); row.style.display = "contents";
+      var wk = document.createElement("span"); wk.className = "wk"; wk.textContent = M.isoWeek(rowStart); wk.setAttribute("aria-hidden", "true");
+      row.appendChild(wk);
+      for (var c = 0; c < 7; c++) {
+        var iso = M.addDays(rowStart, c);
+        var cell = document.createElement("div"); cell.setAttribute("role", "gridcell");
+        if (iso.slice(0,7) === month) {
+          var st = cellState(iso);
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "day " + st; b.textContent = dayNum(iso); b.dataset.iso = iso; b.tabIndex = -1;
+          if (iso === today) b.classList.add("today");
+          if (arrival && departure && iso >= arrival && iso < departure) b.classList.add("inrange");
+          else if (arrival && !departure && iso === arrival) b.classList.add("inrange");
+          if (departure && iso === departure) b.classList.add("dep");
+          var txt = {free:"ledig", busy:"ikke ledig", past:"passert", nodata:"ikke tilgjengelig"}[st];
+          b.setAttribute("aria-label", "Natten fra " + longDate(iso) + " til " + longDate(M.addDays(iso,1)).replace(/ \d{4}$/, "") + ", " + txt);
+          if (st === "past" || (st === "nodata" && !(arrival && !departure && iso > arrival))) b.setAttribute("aria-disabled", "true");
+          b.addEventListener("click", onPick);
+          cell.appendChild(b);
+        }
+        row.appendChild(cell);
+      }
+      grid.appendChild(row);
+    }
+    var target = grid.querySelector('[data-iso="' + focusIso + '"]') || grid.querySelector(".day.free") || grid.querySelector(".day:not(.past)") || grid.querySelector(".day");
+    if (target) target.tabIndex = 0;
+    renderSummary();
+  }
+
+  function renderSummary(){
+    var el = document.getElementById("summary");
+    if (!arrival) { el.textContent = "Velg ankomstdag og avreisedag."; return; }
+    if (!departure) { el.textContent = "Ankomst " + shortDate(arrival) + ". Velg avreisedag."; return; }
+    var rs = M.rangeStatus(byDate, arrival, departure, mode);
+    el.innerHTML = "";
+    if (rs.allFree) {
+      var p = document.createElement("span"); p.className = "ok";
+      p.textContent = "✓ " + rs.nights + (rs.nights === 1 ? " natt" : " netter") + " ledig: " + shortDate(arrival) + " til " + shortDate(departure);
+      el.appendChild(p);
+      if (contact) {
+        var a = document.createElement("a"); a.className = "cta";
+        var subject = "Besøk i Tromsø " + dm(arrival) + "–" + dm(departure);
+        var body = "Hei!\n\nVi vil gjerne komme på besøk.\n\nAnkomst: " + longDate(arrival) + "\nAvreise: " + longDate(departure) +
+          "\nAntall netter: " + rs.nights + "\nHvem må være hjemme: " + MODE_TEXT[mode] + "\n\nHilsen\n";
+        a.href = "mailto:" + contact + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+        a.textContent = "Send forespørsel på e-post";
+        el.appendChild(document.createElement("br")); el.appendChild(a);
+      } else {
+        el.appendChild(document.createTextNode(" Ta kontakt med oss for å avtale."));
+      }
+    } else {
+      var s = document.createElement("span"); s.className = "bad";
+      s.textContent = "Ikke alle nettene i perioden er ledige. Prøv andre datoer.";
+      el.appendChild(s);
+    }
+  }
+
+  function onPick(ev){
+    var iso = ev.currentTarget.dataset.iso;
+    focusIso = iso;
+    if (iso < today) return;
+    var depLimit = M.addDays(lastDate, 1);
+    if (!arrival || departure || iso <= arrival) {
+      if (!byDate[iso]) return;
+      arrival = iso; departure = null;
+    } else {
+      if (iso > depLimit) return;
+      departure = iso;
+    }
+    render();
+    var again = document.querySelector('#grid [data-iso="' + iso + '"]'); if (again) again.focus();
+  }
+
+  function moveFocus(delta){
+    var cur = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.iso : null;
+    if (!cur) return;
+    var next = M.addDays(cur, delta);
+    if (next < monthStart(firstDate) || next > M.addDays(lastDate, 1)) return;
+    focusIso = next;
+    if (next.slice(0,7) !== view.slice(0,7)) { view = monthStart(next); render(); }
+    else { document.querySelectorAll("#grid .day").forEach(function(b){ b.tabIndex = -1; }); }
+    var b = document.querySelector('#grid [data-iso="' + next + '"]');
+    if (b) { b.tabIndex = 0; b.focus(); }
+  }
+
+  document.getElementById("grid").addEventListener("keydown", function(e){
+    var map = {ArrowLeft:-1, ArrowRight:1, ArrowUp:-7, ArrowDown:7};
+    if (map[e.key] !== undefined) { e.preventDefault(); moveFocus(map[e.key]); }
+  });
+  document.querySelectorAll("#seg button").forEach(function(b){ b.addEventListener("click", function(){ setMode(b.dataset.mode); }); });
+  document.getElementById("prev").addEventListener("click", function(){ view = addMonths(view, -1); focusIso = null; render(); });
+  document.getElementById("next").addEventListener("click", function(){ view = addMonths(view, 1); focusIso = null; render(); });
+
+  setMode(mode);
+
+  fetch("/api/nights?k=" + encodeURIComponent(key), {credentials:"omit", cache:"no-store"})
+    .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(data){
+      contact = /^[^\s@?&<>"]+@[^\s@?&<>"]+$/.test(data.contact || "") ? data.contact : "";
+      data.nights.forEach(function(n){ byDate[n.date] = n; });
+      firstDate = data.nights.length ? data.nights[0].date : new Date().toISOString().slice(0,10);
+      lastDate = data.nights.length ? data.nights[data.nights.length - 1].date : firstDate;
+      today = firstDate;
+      view = monthStart(firstDate);
+      document.getElementById("updated").textContent = ago(data.updated_at);
+      render();
+    })
+    .catch(function(){
+      var u = document.getElementById("updated");
+      u.textContent = "Kunne ikke hente kalenderen. Prøv igjen senere."; u.className = "updated error";
+    });
+})();
+</script>
+</body>
+</html>
