@@ -84,7 +84,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
     <div class="summary" id="summary" aria-live="polite"></div>
   </section>
 
-  <p class="foot">Kalenderen viser om en eller begge er bortreist eller har besøk.</p>
+  <p class="foot">Kalenderen viser om en eller begge er bortreist,  eller om vi har besøk.</p>
 </main>
 
 <script src="/static/modes.js"></script>
@@ -113,7 +113,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
   function ago(ts){
     if (!ts) return "Ikke hentet ennå";
     var min = Math.round((Date.now() - Date.parse(ts)) / 60000);
-    if (min < 1) return "Oppdatert akkurat nå";
+    if (min < 1) return "Oppdatert mindre enn 1 minutt siden";
     if (min < 60) return "Oppdatert for " + min + " min siden";
     var h = Math.round(min / 60);
     if (h < 48) return "Oppdatert for " + h + " t siden";
@@ -186,14 +186,14 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
         var body = "Hei!\n\nVi vil gjerne komme på besøk.\n\nAnkomst: " + longDate(arrival) + "\nAvreise: " + longDate(departure) +
           "\nAntall netter: " + rs.nights + "\n\nHilsen\n";
         a.href = "mailto:" + contact + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
-        a.textContent = "Send forespørsel på e-post";
+        a.textContent = "Send e-post";
         el.appendChild(document.createElement("br")); el.appendChild(a);
       } else {
-        el.appendChild(document.createTextNode(" Ta kontakt med oss for å avtale."));
+        el.appendChild(document.createTextNode(" Ta kontakt med oss."));
       }
     } else {
       var s = document.createElement("span"); s.className = "bad";
-      s.textContent = "Ikke alle nettene i perioden er ledige. Prøv andre datoer.";
+      s.textContent = "Prøv andre datoer.";
       el.appendChild(s);
     }
   }
