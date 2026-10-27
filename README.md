@@ -1,6 +1,6 @@
 # Kom på besøk – besøkskalender for Tromsø
 
-Viser venner og familie hvilke netter det passer å komme på besøk. Appen leser Håvard, Marianne og en felleskalender fra Google Kalender (hemmelig iCal-adresse) og viser bare «ledig / ikke ledig» per natt. Ingen titler eller detaljer fra kalenderne når frem til besøkende.
+Viser venner og familie hvilke netter det passer å komme på besøk. Appen leser felleskalenderen fra Google Kalender (hemmelig iCal-adresse) og viser bare «ledig / ikke ledig» per natt. Ingen titler eller detaljer fra kalenderne når frem til besøkende.
 
 Full bestilling: [`SPEC.md`](SPEC.md). Valg tatt underveis: [`DECISIONS.md`](DECISIONS.md).
 
@@ -18,19 +18,19 @@ En hendelse gjør at du regnes som borte en natt når:
 | Tittel med `#hjemme` | aldri. Bruk for heldags-påminnelser som ikke betyr fravær. |
 | Avlyst | aldri. |
 
-I **felleskalenderen** blokkerer hendelser begge. Hendelser som starter med `Gjest:` eller `Besøk:` betyr at gjesterommet er opptatt:
+Alle hendelser i felleskalenderen følger tabellen over. Hendelser som starter med `Gjest:` eller `Besøk:` betyr at gjesterommet er opptatt:
 - Heldag: legg inn fra ankomstdag til avreisedag. «Gjest: Mamma» fre–søn gir opptatt fredag og lørdag natt. Én dag gir én natt.
 - Med klokkeslett: opptatt de nettene oppholdet går over 00:00–06:00.
 
 ## Finne den hemmelige iCal-adressen
 
-Gjøres av den som eier kalenderen, på en datamaskin (ikke i mobilappen). Google endrer navn på menyvalg av og til, så teksten kan avvike litt:
+Gjøres av den som eier felleskalenderen, på en datamaskin (ikke i mobilappen). Google endrer navn på menyvalg av og til, så teksten kan avvike litt:
 
 1. Åpne [calendar.google.com](https://calendar.google.com), tannhjulet → **Innstillinger**.
 2. Velg kalenderen i venstremenyen under «Innstillinger for kalenderne mine».
 3. Under **Integrer kalender**, kopier **Hemmelig adresse i iCal-format** (slutter på `basic.ics`).
 
-For **felleskalenderen** gjør eieren det samme for den kalenderen. Ser du ikke feltet, mangler du rettigheten «Gjøre endringer og administrere deling», eller så har administratoren slått det av (gjelder Google Workspace-kontoer).
+Ser du ikke feltet, mangler du rettigheten «Gjøre endringer og administrere deling», eller så har administratoren slått det av (gjelder Google Workspace-kontoer).
 
 Adressen gir lesetilgang til hele kalenderen. Behandle den som et passord. Har den lekket: trykk **Tilbakestill** samme sted og oppdater miljøvariabelen.
 
@@ -52,9 +52,9 @@ Admin-siden er `https://<domene>/admin` (brukernavn og passord fra `ADMIN_USER` 
 3. **Port: 8000.** Coolify foreslår 3000, og basbeta-malen bruker 80. Begge er feil her.
 4. **Persistent Storage** → legg til et volum (Volume Mount) med destinasjon **`/app/data`**. Uten dette forsvinner cachen ved hver deploy. Bruk volum, ikke bind mount, ellers eies mappen av root og appen får ikke skrevet.
 5. **Domains**: f.eks. `https://besok.<ditt-domene>`, lagre.
-6. **Environment Variables**: sett først bare `VISITOR_KEY`, `ADMIN_USER`, `ADMIN_PASSWORD` og `CONTACT_EMAIL`. La ICS-variablene stå tomme.
+6. **Environment Variables**: sett først bare `VISITOR_KEY`, `ADMIN_USER`, `ADMIN_PASSWORD` og `CONTACT_EMAIL`. La ICS_SHARED stå tom.
 7. **Deploy.** Sjekk at `https://<domene>/healthz` svarer og at `/?k=<nøkkel>` viser en helt grønn kalender. Da virker pipeline, domene og SSL.
-8. Legg inn `ICS_HAVARD`, `ICS_MARIANNE` og evt. `ICS_SHARED`, og deploy på nytt (eller bare restart). Sjekk `/admin` at alle kildene har «Sist hentet» og ingen feil.
+8. Legg inn `ICS_SHARED`, og deploy på nytt (eller bare restart). Sjekk `/admin` at alle kildene har «Sist hentet» og ingen feil.
 
 Healthcheck er innebygd i Dockerfile (`GET /healthz`). Appen nekter å starte hvis `VISITOR_KEY` er under 24 tegn eller `ADMIN_PASSWORD` under 16.
 
@@ -78,7 +78,7 @@ docker build -t besok . && docker run --rm -p 8000:8000 --env-file .env -v besok
 
 ```bash
 pytest                              # tilgjengelighetslogikk, API, sikkerhet
-node --test tests/modes.test.js     # modusberegning i frontend
+node --test tests/modes.test.js     # ledighet og perioder i frontend
 ```
 
 ## Oppdatere avhengigheter

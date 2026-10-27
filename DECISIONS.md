@@ -2,9 +2,9 @@
 
 Valg tatt der specen var åpen eller måtte presiseres.
 
-1. **Gjesterom ved heldagshendelser.** Specen sier at `Gjest:`-hendelser blokkerer natta, men ikke hvilke netter en heldagshendelse dekker. Folk skriver oftest ankomst til avreise, så «Gjest: Mamma» fre–søn gir fredag og lørdag natt. En endagshendelse gir én natt. Med klokkeslett brukes kjernenatta (00–06). Personreglene i 4.2 er uendret.
-2. **Kilde-nøkler** er `h1`, `h2`, `m1`, `shared1` osv. Visningsnavn i admin er «Håvard 1», «Felles 1».
-3. **Tomme ICS-variabler** gir en helt ledig kalender for den personen, slik at første deploy kan gjøres uten URL-er (spec 13).
+1. **Gjesterom ved heldagshendelser.** Specen sier at `Gjest:`-hendelser blokkerer natta, men ikke hvilke netter en heldagshendelse dekker. Folk skriver oftest ankomst til avreise, så «Gjest: Mamma» fre–søn gir fredag og lørdag natt. En endagshendelse gir én natt. Med klokkeslett brukes kjernenatta (00–06). Reglene i 4.2 er uendret.
+2. **Kilde-nøkler** er `shared1`, `shared2` osv. Visningsnavn i admin er «Felles 1».
+3. **Tomme ICS-variabler** gir en helt ledig kalender, slik at første deploy kan gjøres uten URL-er (spec 13).
 4. **Kun https-URL-er** godtas for ICS. Appen nekter å starte på `http://`.
 5. **Tilgangsloggen i uvicorn er slått av** (`--no-access-log`), fordi den logger hele URL-en med `?k=<VISITOR_KEY>`. Feilmeldinger fra henting logger bare kildenøkkel og feiltype, aldri URL eller tittel.
 6. **Statiske filer** serveres ikke som mappe. Bare `/static/modes.js` er åpen; `index.html` krever nøkkel og `admin.html` krever innlogging. FastAPIs `/docs` og `/openapi.json` er slått av.
@@ -18,3 +18,4 @@ Valg tatt der specen var åpen eller måtte presiseres.
 14. **Flytende tider** (uten tidssone) tolkes som `TZ_LOCAL`.
 15. **Transitive avhengigheter** som følger med de tillatte pakkene: `opentelemetry-api` og `annotated-doc` (via fastapi), `x-wr-timezone` (via recurring-ical-events), pluss pydantic, starlette, anyio m.fl. Ingen er lagt til direkte.
 16. **Python-versjon**: Dockerfile bruker `python:3.12-slim` (tag, ikke digest). Vurder å feste til digest når imaget er bygget første gang.
+12. **Kun felleskalenderen.** Håvards og Mariannes personlige kalendere (`ICS_HAVARD`, `ICS_MARIANNE`) er fjernet. Alle vanlige hendelser i `ICS_SHARED` gjør at vi er borte (`home=false`), `Gjest:`/`Besøk:` gjør gesterommet opptatt (`room=false`). API-et returnerer `{date, home, room}`, og en natt er ledig når begge er `true`. Valget «Hvem må være hjemme?» i frontend er fjernet.

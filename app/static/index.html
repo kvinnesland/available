@@ -28,10 +28,6 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
 .updated{font-size:13px;color:var(--muted);margin:0 0 24px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
 .label{font-size:14px;color:var(--muted);margin:0 0 8px}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
-.seg button{appearance:none;border:0;background:transparent;color:var(--text);font:inherit;font-size:15px;padding:10px 4px;min-height:44px;cursor:pointer}
-.seg button+button{border-left:1px solid var(--border)}
-.seg button[aria-pressed="true"]{background:var(--accent-bg);color:var(--accent-text);font-weight:600}
 .monthbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .monthbar h2{font-size:17px;font-weight:600;margin:0;text-transform:capitalize}
 .nav{appearance:none;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer}
@@ -47,7 +43,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
 .day.inrange{box-shadow:inset 0 0 0 2px var(--accent)}
 .day.inrange.busy{box-shadow:inset 0 0 0 2px var(--danger)}
 .day.dep{border:2px dashed var(--accent)}
-.day:focus-visible,.seg button:focus-visible,.nav:focus-visible,.cta:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.day:focus-visible,.nav:focus-visible,.cta:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
 .legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted);margin:14px 0 0}
 .sw{display:inline-block;width:18px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
 .sw.free{background:var(--free-bg);border:1px solid var(--free-text)}
@@ -67,14 +63,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
   <h1>Kom på besøk i Tromsø</h1>
   <p class="updated" id="updated">Henter kalenderen …</p>
 
-  <section class="card" aria-labelledby="whoLabel">
-    <p class="label" id="whoLabel">Hvem må være hjemme?</p>
-    <div class="seg" role="group" aria-labelledby="whoLabel" id="seg">
-      <button type="button" data-mode="h" aria-pressed="false">Håvard</button>
-      <button type="button" data-mode="m" aria-pressed="false">Marianne</button>
-      <button type="button" data-mode="b" aria-pressed="true">Begge</button>
-    </div>
-
+  <section class="card">
     <div class="monthbar">
       <button type="button" class="nav" id="prev" aria-label="Forrige måned">‹</button>
       <h2 id="monthTitle" aria-live="polite"></h2>
@@ -105,11 +94,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
   var M = window.BesokModes;
   var key = new URLSearchParams(location.search).get("k") || "";
   var byDate = {}, firstDate = null, lastDate = null, contact = "", today = null;
-  var mode = "b", view = null, arrival = null, departure = null, focusIso = null;
-  var MODE_TEXT = {h:"Håvard må være hjemme", m:"Marianne må være hjemme", b:"Begge må være hjemme"};
-
-  try { var saved = localStorage.getItem("besok-mode"); if (saved && M.MODES[saved]) mode = saved; } catch (e) {}
-
+  var view = null, arrival = null, departure = null, focusIso = null;
   var fmtWeekday = new Intl.DateTimeFormat("nb-NO", {weekday:"short", timeZone:"UTC"});
   var fmtWeekdayLong = new Intl.DateTimeFormat("nb-NO", {weekday:"long", timeZone:"UTC"});
   var fmtMonthShort = new Intl.DateTimeFormat("nb-NO", {month:"short", timeZone:"UTC"});
@@ -135,18 +120,11 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
     return "Oppdatert " + new Date(ts).toLocaleDateString("nb-NO");
   }
 
-  function setMode(m){
-    mode = m;
-    try { localStorage.setItem("besok-mode", m); } catch (e) {}
-    document.querySelectorAll("#seg button").forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.mode === m)); });
-    render();
-  }
-
   function cellState(iso){
     if (iso < today) return "past";
     var n = byDate[iso];
     if (!n) return "nodata";
-    return M.isFree(n, mode) ? "free" : "busy";
+    return M.isFree(n) ? "free" : "busy";
   }
 
   function render(){
@@ -196,7 +174,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
     var el = document.getElementById("summary");
     if (!arrival) { el.textContent = "Velg ankomstdag og avreisedag."; return; }
     if (!departure) { el.textContent = "Ankomst " + shortDate(arrival) + ". Velg avreisedag."; return; }
-    var rs = M.rangeStatus(byDate, arrival, departure, mode);
+    var rs = M.rangeStatus(byDate, arrival, departure);
     el.innerHTML = "";
     if (rs.allFree) {
       var p = document.createElement("span"); p.className = "ok";
@@ -206,7 +184,7 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
         var a = document.createElement("a"); a.className = "cta";
         var subject = "Besøk i Tromsø " + dm(arrival) + "–" + dm(departure);
         var body = "Hei!\n\nVi vil gjerne komme på besøk.\n\nAnkomst: " + longDate(arrival) + "\nAvreise: " + longDate(departure) +
-          "\nAntall netter: " + rs.nights + "\nHvem må være hjemme: " + MODE_TEXT[mode] + "\n\nHilsen\n";
+          "\nAntall netter: " + rs.nights + "\n\nHilsen\n";
         a.href = "mailto:" + contact + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
         a.textContent = "Send forespørsel på e-post";
         el.appendChild(document.createElement("br")); el.appendChild(a);
@@ -252,11 +230,8 @@ h1{font-size:26px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em}
     var map = {ArrowLeft:-1, ArrowRight:1, ArrowUp:-7, ArrowDown:7};
     if (map[e.key] !== undefined) { e.preventDefault(); moveFocus(map[e.key]); }
   });
-  document.querySelectorAll("#seg button").forEach(function(b){ b.addEventListener("click", function(){ setMode(b.dataset.mode); }); });
   document.getElementById("prev").addEventListener("click", function(){ view = addMonths(view, -1); focusIso = null; render(); });
   document.getElementById("next").addEventListener("click", function(){ view = addMonths(view, 1); focusIso = null; render(); });
-
-  setMode(mode);
 
   fetch("/api/nights?k=" + encodeURIComponent(key), {credentials:"omit", cache:"no-store"})
     .then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })

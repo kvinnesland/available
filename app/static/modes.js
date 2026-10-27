@@ -1,14 +1,9 @@
-/* Ren logikk for moduser og perioder. Brukes i nettleseren (window.BesokModes) og i Node-testen. */
+/* Ren logikk for ledighet og perioder. Brukes i nettleseren (window.BesokModes) og i Node-testen. */
 (function (root) {
   "use strict";
 
-  var MODES = { h: "Håvard", m: "Marianne", b: "Begge" };
-
-  function isFree(night, mode) {
-    if (!night || !night.room) return false;
-    if (mode === "h") return !!night.h;
-    if (mode === "m") return !!night.m;
-    return !!(night.h && night.m);
+  function isFree(night) {
+    return !!(night && night.home && night.room);
   }
 
   function addDays(iso, n) {
@@ -22,13 +17,13 @@
   }
 
   /* Periode fra ankomst (inkl.) til avreise (ekskl.). byDate: { "YYYY-MM-DD": night } */
-  function rangeStatus(byDate, arrival, departure, mode) {
+  function rangeStatus(byDate, arrival, departure) {
     var n = daysBetween(arrival, departure);
     if (n < 1) return { nights: 0, allFree: false, blocked: [] };
     var blocked = [];
     for (var i = 0; i < n; i++) {
       var iso = addDays(arrival, i);
-      if (!isFree(byDate[iso], mode)) blocked.push(iso);
+      if (!isFree(byDate[iso])) blocked.push(iso);
     }
     return { nights: n, allFree: blocked.length === 0, blocked: blocked };
   }
@@ -43,7 +38,7 @@
     return Math.floor(dayOfYear / 7) + 1;
   }
 
-  var api = { MODES: MODES, isFree: isFree, rangeStatus: rangeStatus, isoWeek: isoWeek, addDays: addDays, daysBetween: daysBetween };
+  var api = { isFree: isFree, rangeStatus: rangeStatus, isoWeek: isoWeek, addDays: addDays, daysBetween: daysBetween };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.BesokModes = api;
 })(this);

@@ -1,4 +1,4 @@
-# SPEC: «Kom på besøk» – besøkskalender for Håvard og Marianne
+# SPEC: «Kom på besøk» – besøkskalender for Tromsø
 
 Bygg hele applikasjonen beskrevet under i én omgang. Ikke spør om avklaringer underveis; der noe er uklart, velg det enkleste alternativet som oppfyller akseptansekriteriene og noter valget i `DECISIONS.md`. Hvis repoet har en `SECURITY.md`, gjelder sikkerhetskravene der i tillegg til denne specen. Finnes det en `CLAUDE.md` som ber deg stille spørsmål eller gå gjennom sjekklister før du bygger, skal du ikke gjøre det: denne specen er bestillingen, og alt nødvendig står her.
 
@@ -8,20 +8,12 @@ Venner og familie skal kunne se hvilke netter det passer å komme på besøk til
 
 ## 2. Brukere
 
-- **Besøkende** (venner/familie): åpner en hemmelig lenke, velger modus, ser ledige netter, velger periode, sender forespørsel på e-post.
+- **Besøkende** (venner/familie): åpner en hemmelig lenke, ser ledige netter, velger periode, sender forespørsel på e-post.
 - **Eiere** (Håvard og Marianne): har i tillegg en passordbeskyttet admin-side som viser *hvorfor* en natt er blokkert (hendelsestittel og kilde), for å kunne stole på og feilsøke systemet.
 
 ## 3. Kalenderkilder
 
-Tre kilder, hver konfigurert som en hemmelig iCal-URL fra Google Kalender (Innstillinger → kalenderen → «Integrer kalender» → «Hemmelig adresse i iCal-format»):
-
-| Env-variabel | Eier | Gjelder for |
-|---|---|---|
-| `ICS_HAVARD` | Håvard | Håvard |
-| `ICS_MARIANNE` | Marianne | Marianne |
-| `ICS_SHARED` | Felleskalender | Begge (+ gjesterom, se 4.4) |
-
-Hver variabel kan inneholde flere URL-er separert med komma (f.eks. jobbkalender + privat). `ICS_SHARED` er valgfri.
+Én kilde: felleskalenderen, konfigurert som hemmelig iCal-URL fra Google Kalender (Innstillinger → kalenderen → «Integrer kalender» → «Hemmelig adresse i iCal-format») i env-variabelen `ICS_SHARED`. Den kan inneholde flere URL-er separert med komma, og er valgfri ved første deploy.
 
 URL-ene er hemmeligheter: de skal kun finnes i env, aldri logges, aldri sendes til frontend, aldri committes. Ikke bruk OAuth eller Google API i v1.
 
@@ -51,21 +43,17 @@ Ignorer `TRANSP`/«Ledig/Opptatt»-feltet helt. Google setter heldagshendelser t
 Gjentakende hendelser (RRULE, EXDATE, RECURRENCE-ID-overstyringer) skal ekspanderes korrekt. Bruk biblioteket `recurring-ical-events` oppå `icalendar`.
 
 ### 4.4 Felleskalenderen
-- Hendelser i `ICS_SHARED` som starter med `Gjest:` eller `Besøk:` (case-insensitivt) betyr at **gjesterommet er opptatt**. De blokkerer natta i alle moduser, uansett hvem som er hjemme.
-- Alle andre hendelser i `ICS_SHARED` følger reglene i 4.2 og blokkerer **begge** personer.
+- Hendelser i `ICS_SHARED` som starter med `Gjest:` eller `Besøk:` (case-insensitivt) betyr at **gjesterommet er opptatt**. De blokkerer ikke `home`.
+- Alle andre hendelser i `ICS_SHARED` følger reglene i 4.2 og betyr at vi ikke er hjemme (`home=false`).
 
 ### 4.5 Resultat per natt
 For hver natt fra i dag til `HORIZON_DAYS` (standard 365) frem beregnes:
 
 ```json
-{ "date": "2026-12-12", "h": true, "m": false, "room": true }
+{ "date": "2026-12-12", "home": true, "room": true }
 ```
-- `h` = Håvard hjemme, `m` = Marianne hjemme, `room` = gjesterom ledig.
-
-Modusene beregnes i frontend:
-- **Håvard må være hjemme:** `h && room`
-- **Marianne må være hjemme:** `m && room`
-- **Begge må være hjemme:** `h && m && room`
+- `home` = vi er hjemme, `room` = gjesterom ledig.
+- En natt er ledig for besøk når `home && room`. Beregnes i frontend.
 
 Netter før i dag vises ikke som ledige.
 
@@ -131,12 +119,11 @@ Språk: norsk bokmål. Mobil først (de fleste åpner lenken fra en melding), fu
 
 **Innhold, ovenfra og ned:**
 1. Overskrift «Kom på besøk i Tromsø» og liten tekst «Oppdatert for X min siden».
-2. Segmentert kontroll «Hvem må være hjemme?»: `Håvard` · `Marianne` · `Begge`. Standard: `Begge`. Valget huskes i `localStorage` (pakket i try/catch).
 3. Månedsvisning med forrige/neste-knapper, begrenset til horisonten. Uka starter på mandag. Vis **ukenummer** (ISO-8601) i egen kolonne til venstre. Ukedager: man tir ons tor fre lør søn.
 4. Hver dagcelle representerer natta som starter den dagen. Ledig = grønn bakgrunn. Ikke ledig = nedtonet med gjennomstreking. Passerte datoer = nedtonet.
 5. Forklaring under kalenderen: ledig natt / ikke ledig / «Tallet = natta som starter den dagen».
 6. Periodevalg: første klikk = ankomstdag, andre klikk = avreisedag. Valgte netter markeres. Oppsummering: «3 netter ledig: fre 12. des til man 15. des». Er noen netter i perioden ikke ledige: «Ikke alle nettene i perioden er ledige. Prøv andre datoer.»
-7. Knapp «Send forespørsel på e-post» når perioden er ledig. Åpner `mailto:` til `CONTACT_EMAIL` med emne «Besøk i Tromsø DD.MM–DD.MM» og ferdig utfylt brødtekst med datoer, antall netter og valgt modus. Ingen e-postsending fra server.
+7. Knapp «Send forespørsel på e-post» når perioden er ledig. Åpner `mailto:` til `CONTACT_EMAIL` med emne «Besøk i Tromsø DD.MM–DD.MM» og ferdig utfylt brødtekst med datoer, og antall netter. Ingen e-postsending fra server.
 
 **Stil:** rolig og skandinavisk. Hvit/lys bakgrunn, én aksentfarge, systemfont, ingen skygger eller gradienter. Støtt mørk modus via `prefers-color-scheme`. Tilgjengelighet: celler er `<button>` med `aria-label` («Natt til lørdag 13. desember, ledig»), tastaturnavigasjon med piltaster, synlig fokus, kontrast WCAG AA. Ikke stol på farge alene (gjennomstreking for ikke ledig).
 
@@ -144,13 +131,11 @@ Datoformat: `fre 12. des`, `12.12.2026`. Bruk `Intl.DateTimeFormat('nb-NO')`.
 
 ## 9. Admin-side
 
-Enkel tabell over valgt måned: dato, Håvard hjemme, Marianne hjemme, gjesterom ledig, og årsaker (person, kilde, hendelsestittel, hvilken regel i 4.2 som slo til). Knapp «Hent på nytt». Status per kilde: siste vellykkede henting og eventuell feil (uten URL).
+Enkel tabell over valgt måned: dato, hjemme, gjesterom ledig, og årsaker (kilde, hendelsestittel, hvilken regel i 4.2 som slo til). Knapp «Hent på nytt». Status per kilde: siste vellykkede henting og eventuell feil (uten URL).
 
 ## 10. Konfigurasjon (`.env.example`)
 
 ```
-ICS_HAVARD=
-ICS_MARIANNE=
 ICS_SHARED=
 VISITOR_KEY=        # minst 24 tegn, generer med: python -c "import secrets;print(secrets.token_urlsafe(24))"
 ADMIN_USER=
@@ -174,20 +159,20 @@ Lag egne ICS-fixtures. `availability.py` testes uten nettverk. Minst:
 5. `#hjemme` i tittel på heldagshendelse → ingen blokkering.
 6. `#borte` på hendelse 08:00–09:00 → blokkerer natta før.
 7. Ukentlig gjentakende heldagshendelse med én EXDATE og én flyttet forekomst (RECURRENCE-ID).
-8. Hendelse i `ICS_SHARED` blokkerer både `h` og `m`.
-9. `Gjest: Mamma` i `ICS_SHARED` setter `room=false`, men `h` og `m` forblir `true`.
+8. Vanlig hendelse i `ICS_SHARED` setter `home=false`.
+9. `Gjest: Mamma` i `ICS_SHARED` setter `room=false`, men `home` forblir `true`.
 10. Overgang til vintertid (siste søndag i oktober) og sommertid (siste søndag i mars): nattvinduene beregnes korrekt i lokal tid.
 11. Hendelse med UTC-tid og hendelse med TZID=Europe/Oslo gir samme resultat.
 12. Kilde som feiler beholder forrige resultat; `/healthz` viser siste vellykkede henting.
 13. `/api/nights` uten eller med feil nøkkel → 404. Svar inneholder aldri feltet `title` eller tekst fra fixtures.
-14. Modusberegningen i frontend (ekstraher til en ren JS-funksjon og test med en enkel Node-test, uten avhengigheter).
+14. Ledighets- og periodeberegningen i frontend (ekstraher til en ren JS-funksjon og test med en enkel Node-test, uten avhengigheter).
 
 ## 12. Akseptansekriterier
 
 - `docker build` og `docker run --env-file .env` gir fungerende app på port 8000.
 - `pytest` passerer.
 - Med tre gyldige iCal-URL-er vises korrekt tilgjengelighet innen 30 sekunder etter oppstart.
-- Besøkende kan på mobil velge modus, bla måneder, velge en periode og åpne en ferdig utfylt e-post.
+- Besøkende kan på mobil bla måneder, velge en periode og åpne en ferdig utfylt e-post.
 - Ingen hendelsesdata eller hemmeligheter kan nås uten admin-innlogging.
 - `README.md` forklarer på norsk: hvordan hver av oss finner hemmelig iCal-adresse (også for felleskalenderen), hvordan generere nøkler, og hvordan deploye i Coolify med persistent volum for `data/`.
 

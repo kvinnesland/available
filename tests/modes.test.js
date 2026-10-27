@@ -1,30 +1,28 @@
-// 14. Modusberegning i frontend. Kjør: node --test tests/
+// 14. Ledighet og perioder i frontend. Kjør: node --test tests/
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const M = require("../app/static/modes.js");
 
-const n = (h, m, room) => ({ h, m, room });
+const n = (home, room) => ({ home, room });
 
-test("isFree per modus", () => {
-  assert.equal(M.isFree(n(true, false, true), "h"), true);
-  assert.equal(M.isFree(n(true, false, true), "m"), false);
-  assert.equal(M.isFree(n(true, false, true), "b"), false);
-  assert.equal(M.isFree(n(true, true, true), "b"), true);
-  assert.equal(M.isFree(n(true, true, false), "h"), false, "gjesterom opptatt blokkerer alle moduser");
-  assert.equal(M.isFree(undefined, "b"), false);
+test("isFree krever hjemme og ledig gjesterom", () => {
+  assert.equal(M.isFree(n(true, true)), true);
+  assert.equal(M.isFree(n(false, true)), false);
+  assert.equal(M.isFree(n(true, false)), false, "gjesterom opptatt");
+  assert.equal(M.isFree(undefined), false);
 });
 
 test("rangeStatus teller netter, avreisedag er eksklusiv", () => {
   const byDate = {
-    "2026-12-12": n(true, true, true),
-    "2026-12-13": n(true, false, true),
-    "2026-12-14": n(true, true, true),
-    "2026-12-15": n(false, false, true),
+    "2026-12-12": n(true, true),
+    "2026-12-13": n(false, true),
+    "2026-12-14": n(true, true),
+    "2026-12-15": n(false, true),
   };
-  assert.deepEqual(M.rangeStatus(byDate, "2026-12-12", "2026-12-15", "h"), { nights: 3, allFree: true, blocked: [] });
-  assert.deepEqual(M.rangeStatus(byDate, "2026-12-12", "2026-12-15", "b"), { nights: 3, allFree: false, blocked: ["2026-12-13"] });
-  assert.equal(M.rangeStatus(byDate, "2026-12-12", "2026-12-12", "h").allFree, false);
+  assert.deepEqual(M.rangeStatus(byDate, "2026-12-14", "2026-12-15"), { nights: 1, allFree: true, blocked: [] });
+  assert.deepEqual(M.rangeStatus(byDate, "2026-12-12", "2026-12-15"), { nights: 3, allFree: false, blocked: ["2026-12-13"] });
+  assert.equal(M.rangeStatus(byDate, "2026-12-12", "2026-12-12").allFree, false);
 });
 
 test("ISO-ukenummer", () => {

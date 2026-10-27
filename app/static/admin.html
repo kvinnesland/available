@@ -44,7 +44,7 @@ h2{font-size:16px;margin:0 0 8px;text-transform:capitalize}
 
   <section class="card">
     <table>
-      <thead><tr><th>Natt fra</th><th>Håvard hjemme</th><th>Marianne hjemme</th><th>Gjesterom ledig</th><th>Årsaker</th></tr></thead>
+      <thead><tr><th>Natt fra</th><th>Hjemme</th><th>Gjesterom ledig</th><th>Årsaker</th></tr></thead>
       <tbody id="nights"></tbody>
     </table>
   </section>
@@ -63,7 +63,7 @@ h2{font-size:16px;margin:0 0 8px;text-transform:capitalize}
 
   function renderSources(list){
     var tb = document.getElementById("sources"); tb.innerHTML = "";
-    if (!list.length) { var r = document.createElement("tr"); r.appendChild(td("Ingen kilder konfigurert. Sett ICS_HAVARD, ICS_MARIANNE og evt. ICS_SHARED.")); tb.appendChild(r); return; }
+    if (!list.length) { var r = document.createElement("tr"); r.appendChild(td("Ingen kilder konfigurert. Sett ICS_SHARED.")); tb.appendChild(r); return; }
     list.forEach(function(s){
       var r = document.createElement("tr");
       r.appendChild(td(s.label)); r.appendChild(td(stamp(s.last_success))); r.appendChild(td(String(s.events)));
@@ -84,8 +84,8 @@ h2{font-size:16px;margin:0 0 8px;text-transform:capitalize}
         data.nights.forEach(function(n){
           var r = document.createElement("tr");
           r.appendChild(td(fmtDay.format(new Date(n.date + "T12:00:00Z"))));
-          r.appendChild(td(yn(n.h))); r.appendChild(td(yn(n.m))); r.appendChild(td(yn(n.room)));
-          var reasons = n.reasons.map(function(x){ return x.person + " – " + x.title + " (" + x.source + ", " + x.rule + ")"; }).join("\n");
+          r.appendChild(td(yn(n.home))); r.appendChild(td(yn(n.room)));
+          var reasons = n.reasons.map(function(x){ return x.title + " (" + x.source + ", " + x.rule + ")"; }).join("\n");
           var c = td(reasons || "–"); c.style.whiteSpace = "pre-line"; r.appendChild(c);
           tb.appendChild(r);
         });

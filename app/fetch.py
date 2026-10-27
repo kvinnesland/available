@@ -105,7 +105,7 @@ class CalendarStore:
 
     def _sources(self) -> list[Source]:
         return [
-            Source(s.key, s.owner, s.label, tuple(self.states[s.key].events)) for s in self.settings.sources
+            Source(s.key, s.label, tuple(self.states[s.key].events)) for s in self.settings.sources
         ]
 
     def nights(self, first: date | None = None, count: int | None = None, with_reasons: bool = False) -> list[dict]:

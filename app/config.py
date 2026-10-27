@@ -15,7 +15,6 @@ class ConfigError(Exception):
 @dataclass(frozen=True)
 class SourceConfig:
     key: str
-    owner: str  # "h", "m", "shared"
     label: str
     url: str = field(repr=False)  # hemmelig: aldri i repr/logg
 
@@ -62,11 +61,10 @@ def load_settings(env: dict[str, str] | None = None) -> Settings:
         raise ConfigError("ADMIN_PASSWORD må være minst 16 tegn")
 
     sources: list[SourceConfig] = []
-    for var, owner, name in (("ICS_HAVARD", "h", "Håvard"), ("ICS_MARIANNE", "m", "Marianne"), ("ICS_SHARED", "shared", "Felles")):
-        for i, url in enumerate(_urls(env.get(var, "")), start=1):
-            if not url.lower().startswith("https://"):
-                raise ConfigError(f"{var} kilde {i} må være en https-URL")
-            sources.append(SourceConfig(f"{owner}{i}", owner, f"{name} {i}", url))
+    for i, url in enumerate(_urls(env.get("ICS_SHARED", "")), start=1):
+        if not url.lower().startswith("https://"):
+            raise ConfigError(f"ICS_SHARED kilde {i} må være en https-URL")
+        sources.append(SourceConfig(f"shared{i}", f"Felles {i}", url))
 
     try:
         tz = ZoneInfo(env.get("TZ_LOCAL", "Europe/Oslo"))

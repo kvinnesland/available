@@ -18,16 +18,12 @@ ENV = {
     "ADMIN_USER": "admin",
     "ADMIN_PASSWORD": "p" * 20,
     "CONTACT_EMAIL": "besok@example.no",
-    "ICS_HAVARD": "https://cal.example/h.ics",
-    "ICS_MARIANNE": "https://cal.example/m.ics",
     "ICS_SHARED": "https://cal.example/s.ics",
 }
 URLS = {
-    "https://cal.example/h.ics": "havard.ics",
-    "https://cal.example/m.ics": "tz_utc.ics",
     "https://cal.example/s.ics": "shared.ics",
 }
-SECRET_TEXTS = ["Hemmelig hyttetur", "Nattevakt", "Mamma", "juleavslutning", "UTC-hendelse"]
+SECRET_TEXTS = ["Mamma", "juleavslutning", "Ola"]
 
 
 class FakeFetcher:
@@ -85,10 +81,10 @@ def test_nights_lekker_ikke(ready):
     for s in SECRET_TEXTS:
         assert s not in body
     data = r.json()
-    assert set(data["nights"][0]) == {"date", "h", "m", "room"}
+    assert set(data["nights"][0]) == {"date", "home", "room"}
     by = {n["date"]: n for n in data["nights"]}
-    assert by["2026-11-05"]["h"] is False and by["2026-11-05"]["m"] is True
-    assert by["2026-12-04"]["room"] is False
+    assert by["2026-12-09"]["home"] is False and by["2026-12-09"]["room"] is True
+    assert by["2026-12-04"]["room"] is False and by["2026-12-04"]["home"] is True
     assert len(data["nights"]) == 365
     assert data["contact"] == "besok@example.no"
 
@@ -140,15 +136,15 @@ def test_feilende_kilde_beholder_resultat(ready):
     client, store, fetcher = ready
     before = client.get("/healthz").json()["last_success"]
     assert before is not None
-    fetcher.fail.add("https://cal.example/h.ics")
+    fetcher.fail.add("https://cal.example/s.ics")
     import asyncio
 
     asyncio.run(store.refresh())
     status = {s["key"]: s for s in store.source_status()}
-    assert status["h1"]["last_error"] == "HTTP 500"
-    assert status["h1"]["events"] > 0
+    assert status["shared1"]["last_error"] == "HTTP 500"
+    assert status["shared1"]["events"] > 0
     by = {n["date"]: n for n in store.nights()}
-    assert by["2026-11-05"]["h"] is False  # fortsatt blokkert fra forrige henting
+    assert by["2026-12-09"]["home"] is False  # fortsatt blokkert fra forrige henting
     assert client.get("/healthz").json()["ok"] is True
 
 
@@ -165,7 +161,7 @@ def test_cache_overlever_omstart(tmp_path):
     failing.fail = set(URLS)
     _, store2, _ = make(tmp_path, fetcher=failing)
     by = {n["date"]: n for n in store2.nights()}
-    assert by["2026-11-05"]["h"] is False
+    assert by["2026-12-09"]["home"] is False
 
 
 def test_url_logges_ikke(tmp_path, caplog):
@@ -189,7 +185,7 @@ def test_tomme_kilder_er_lov(tmp_path):
 
     asyncio.run(store.refresh())
     data = client.get(f"/api/nights?k={KEY}").json()
-    assert all(n["h"] and n["m"] and n["room"] for n in data["nights"])
+    assert all(n["home"] and n["room"] for n in data["nights"])
     assert data["updated_at"] is not None
 
 
@@ -199,7 +195,7 @@ def test_tomme_kilder_er_lov(tmp_path):
         ({"VISITOR_KEY": "kort"}, "VISITOR_KEY"),
         ({"ADMIN_PASSWORD": "kort"}, "ADMIN_PASSWORD"),
         ({"ADMIN_USER": ""}, "ADMIN_USER"),
-        ({"ICS_HAVARD": "http://usikker.example/a.ics"}, "https"),
+        ({"ICS_SHARED": "http://usikker.example/a.ics"}, "https"),
         ({"NIGHT_START": "18"}, "NIGHT_START"),
     ],
 )
@@ -208,7 +204,7 @@ def test_nekter_aa_starte(override, msg):
         load_settings({**ENV, **override})
 
 
-def test_flere_url_per_person():
-    s = load_settings({**ENV, "ICS_HAVARD": "https://a.example/1.ics, https://a.example/2.ics"})
-    assert [x.key for x in s.sources] == ["h1", "h2", "m1", "shared1"]
+def test_flere_url():
+    s = load_settings({**ENV, "ICS_SHARED": "https://a.example/1.ics, https://a.example/2.ics"})
+    assert [x.key for x in s.sources] == ["shared1", "shared2"]
     assert "a.example" not in repr(s)

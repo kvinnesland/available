@@ -51,9 +51,8 @@ class Event:
 class Source:
     """En kalenderkilde med ferdig parsede hendelser."""
 
-    key: str  # f.eks. "h1", "m1", "s1"
-    owner: str  # "h", "m" eller "shared"
-    label: str  # visningsnavn i admin, f.eks. "Håvard 1"
+    key: str  # f.eks. "shared1"
+    label: str  # visningsnavn i admin, f.eks. "Felles 1"
     events: tuple[Event, ...]
 
 
@@ -178,33 +177,27 @@ def guest_blocks(ev: Event, d: date, cfg: NightConfig) -> bool:
 def compute_nights(
     sources: list[Source], first: date, count: int, cfg: NightConfig, with_reasons: bool = False
 ) -> list[dict]:
-    """Beregn {date, h, m, room} (+ reasons) for `count` netter fra og med `first`."""
+    """Beregn {date, home, room} (+ reasons) for `count` netter fra og med `first`."""
     nights: list[dict] = []
     for i in range(count):
         d = first + timedelta(days=i)
-        h = m = room = True
+        home = room = True
         reasons: list[dict] = []
         for src in sources:
             for ev in src.events:
-                if src.owner == "shared" and is_guest_event(ev):
+                if is_guest_event(ev):
                     if guest_blocks(ev, d, cfg):
                         room = False
                         if with_reasons:
-                            reasons.append(
-                                {"person": "gjesterom", "source": src.label, "title": ev.title, "rule": "gjest"}
-                            )
+                            reasons.append({"source": src.label, "title": ev.title, "rule": "gjest"})
                     continue
                 rule = blocking_rule(ev, d, cfg)
                 if rule is None:
                     continue
-                if src.owner in ("h", "shared"):
-                    h = False
-                if src.owner in ("m", "shared"):
-                    m = False
+                home = False
                 if with_reasons:
-                    person = {"h": "Håvard", "m": "Marianne", "shared": "begge"}[src.owner]
-                    reasons.append({"person": person, "source": src.label, "title": ev.title, "rule": rule})
-        night = {"date": d.isoformat(), "h": h, "m": m, "room": room}
+                    reasons.append({"source": src.label, "title": ev.title, "rule": rule})
+        night = {"date": d.isoformat(), "home": home, "room": room}
         if with_reasons:
             night["reasons"] = reasons
         nights.append(night)
